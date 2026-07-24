@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
  * @phpstan-type GenerationRow array{route: string, class: string, id: int, token: string}
  * @phpstan-type ResolutionRow array{token: string, expected: string, class: string|null, id: int|null, status: string}
  * @phpstan-type TokenRow array{class: array{name: class-string, file: string|false, line: int|false}, prefix: string, prime: int, inverse: int, random: int, samples: array<int, string>, errors: list<string>, warnings: list<string>}
- * @phpstan-type CollectorData array{inbound: list<InboundRow>, tokens: array<class-string, TokenRow>, generations: list<GenerationRow>, routeMap: array<string, array<string, class-string>>}
+ * @phpstan-type CollectorData array{inbound: list<InboundRow>, tokens: array<class-string, TokenRow>, generations: list<GenerationRow>, routeMap: array<string, array<string, class-string>>, separator: string, base: int}
  */
 final class TokenCollector extends AbstractDataCollector
 {
@@ -62,6 +62,8 @@ final class TokenCollector extends AbstractDataCollector
             'tokens' => $this->buildTokens(),
             'generations' => $this->recorder->getGenerations(),
             'routeMap' => $this->urlGenerator->getRouteMappings(),
+            'separator' => $this->tokenizer->getSeparator(),
+            'base' => $this->tokenizer->getBase(),
         ];
     }
 
@@ -156,33 +158,48 @@ final class TokenCollector extends AbstractDataCollector
             ];
         }
 
-        $this->validateTokens($tokens);
+        foreach ($this->validate($tokens) as $class => $issues) {
+            $tokens[$class]['errors'] = $issues['errors'];
+            $tokens[$class]['warnings'] = $issues['warnings'];
+        }
 
         return $tokens;
     }
 
-    /** @param array<class-string, TokenRow> $tokens */
-    private function validateTokens(array &$tokens): void
+    /**
+     * Returns the errors/warnings for each tokenable class. Kept separate (and
+     * by-value) so the token map itself is never mutated through a reference.
+     *
+     * @param array<class-string, TokenRow> $tokens
+     *
+     * @return array<class-string, array{errors: list<string>, warnings: list<string>}>
+     */
+    private function validate(array $tokens): array
     {
         $separator = $this->tokenizer->getSeparator();
 
+        /** @var array<class-string, array{errors: list<string>, warnings: list<string>}> $issues */
+        $issues = [];
         /** @var array<string, list<class-string>> $byTriplet */
         $byTriplet = [];
         /** @var array<string, class-string> $byPrefix */
         $byPrefix = [];
 
         foreach ($tokens as $name => $entry) {
+            $issues[$name] ??= ['errors' => [], 'warnings' => []];
+
             $tripletKey = sprintf('%d.%d.%d', $entry['prime'], $entry['inverse'], $entry['random']);
             if (isset($byTriplet[$tripletKey])) {
                 foreach ($byTriplet[$tripletKey] as $existing) {
-                    $tokens[$name]['errors'][] = sprintf('Triplet collides with %s', $existing);
-                    $tokens[$existing]['errors'][] = sprintf('Triplet collides with %s', $name);
+                    $issues[$existing] ??= ['errors' => [], 'warnings' => []];
+                    $issues[$name]['errors'][] = sprintf('Triplet collides with %s', $existing);
+                    $issues[$existing]['errors'][] = sprintf('Triplet collides with %s', $name);
                 }
             }
             $byTriplet[$tripletKey][] = $name;
 
             if (isset($byPrefix[$entry['prefix']])) {
-                $tokens[$name]['errors'][] = sprintf(
+                $issues[$name]['errors'][] = sprintf(
                     'Prefix "%s" is already used by %s',
                     $entry['prefix'],
                     $byPrefix[$entry['prefix']],
@@ -192,7 +209,7 @@ final class TokenCollector extends AbstractDataCollector
             }
 
             if (str_contains($entry['prefix'], $separator)) {
-                $tokens[$name]['errors'][] = sprintf(
+                $issues[$name]['errors'][] = sprintf(
                     'Prefix "%s" contains the token separator "%s", which will break decoding.',
                     $entry['prefix'],
                     $separator,
@@ -200,20 +217,22 @@ final class TokenCollector extends AbstractDataCollector
             }
 
             if (strlen($entry['prefix']) < 3) {
-                $tokens[$name]['warnings'][] = sprintf(
+                $issues[$name]['warnings'][] = sprintf(
                     'Prefix "%s" is shorter than 3 characters; collisions are likelier.',
                     $entry['prefix'],
                 );
             }
 
             if ($entry['prime'] <= 0 || $entry['prime'] > self::OPTIMUS_MAX_INT) {
-                $tokens[$name]['errors'][] = sprintf(
+                $issues[$name]['errors'][] = sprintf(
                     'Prime %d is outside Optimus range (1..%d).',
                     $entry['prime'],
                     self::OPTIMUS_MAX_INT,
                 );
             }
         }
+
+        return $issues;
     }
 
     /** @return list<InboundRow> */
@@ -238,6 +257,16 @@ final class TokenCollector extends AbstractDataCollector
     public function getRouteMap(): array
     {
         return $this->data()['routeMap'];
+    }
+
+    public function getSeparator(): string
+    {
+        return $this->data()['separator'];
+    }
+
+    public function getBase(): int
+    {
+        return $this->data()['base'];
     }
 
     /** @return array<class-string, TokenRow> */

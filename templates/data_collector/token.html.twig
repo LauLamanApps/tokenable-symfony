@@ -2,7 +2,7 @@
 
 {% block toolbar %}
     {% set total = collector.inbound|length + collector.generations|length %}
-    {% if total > 0 or collector.errors|length > 0 %}
+    {% if total > 0 or collector.errors|length > 0 or collector.warnings|length > 0 %}
         {% set icon %}
             <svg fill="currentColor" height="24" width="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 350">
                 <path d="M156.834,62.487c-16.939,0-30.72,8.972-30.72,20s13.781,20,30.72,20s30.719-8.972,30.719-20S173.773,62.487,156.834,62.487z"/>
@@ -28,14 +28,27 @@
                 <span>{{ collector.tokens|length }}</span>
             </div>
             <div class="sf-toolbar-info-piece">
-                <b>Triplet collisions / errors</b>
-                <span class="sf-toolbar-status sf-toolbar-status-{{ collector.errors|length > 0 ? 'red' : 'green' }}">
-                    {{ collector.errors|length }}
-                </span>
+                <b>Token format</b>
+                <span>prefix + "{{ collector.separator }}" + base&#8209;{{ collector.base }} id</span>
             </div>
+            <div class="sf-toolbar-info-piece">
+                <b>Warnings</b>
+                <span class="sf-toolbar-status{{ collector.warnings|length > 0 ? ' sf-toolbar-status-yellow' }}">{{ collector.warnings|length }}</span>
+            </div>
+            <div class="sf-toolbar-info-piece">
+                <b>Errors</b>
+                <span class="sf-toolbar-status sf-toolbar-status-{{ collector.errors|length > 0 ? 'red' : 'green' }}">{{ collector.errors|length }}</span>
+            </div>
+            {% for row in collector.errors %}
+                <div class="sf-toolbar-info-piece">
+                    <b>{{ row.class.name|split('\\')|last }}</b>
+                    <span>{{ row.errors|join(' · ') }}</span>
+                </div>
+            {% endfor %}
         {% endset %}
 
-        {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', { link: true }) }}
+        {% set status = collector.errors|length > 0 ? 'red' : (collector.warnings|length > 0 ? 'yellow' : '') %}
+        {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', { link: true, status: status }) }}
     {% endif %}
 {% endblock %}
 
