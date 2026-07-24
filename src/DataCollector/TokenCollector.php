@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LauLamanApps\Tokenable\DataCollector;
 
+use LauLamanApps\Tokenable\Attribute\Tokenable;
 use LauLamanApps\Tokenable\Exception\InvalidTokenException;
 use LauLamanApps\Tokenable\Recorder\TokenableRecorder;
 use LauLamanApps\Tokenable\Routing\TokenableUrlGenerator;
@@ -134,14 +135,18 @@ final class TokenCollector extends AbstractDataCollector
     /** @return array<class-string, TokenRow> */
     private function buildTokens(): array
     {
+        $registered = $this->tokenizer->getRegistered();
+        [$errors, $warnings] = $this->validate($registered);
+
         $tokens = [];
-        foreach ($this->tokenizer->getRegistered() as $class => $config) {
+        foreach ($registered as $class => $config) {
             $reflection = new \ReflectionClass($class);
             $samples = [];
             foreach (self::SAMPLE_IDS as $sampleId) {
                 $samples[$sampleId] = $this->tokenizer->encode($class, $sampleId);
             }
 
+            // Each row is built complete in one literal so it always matches TokenRow.
             $tokens[$class] = [
                 'class' => [
                     'name' => $class,
@@ -153,86 +158,71 @@ final class TokenCollector extends AbstractDataCollector
                 'inverse' => $config->inverse,
                 'random' => $config->random,
                 'samples' => $samples,
-                'errors' => [],
-                'warnings' => [],
+                'errors' => $errors[$class] ?? [],
+                'warnings' => $warnings[$class] ?? [],
             ];
-        }
-
-        foreach ($this->validate($tokens) as $class => $issues) {
-            $tokens[$class]['errors'] = $issues['errors'];
-            $tokens[$class]['warnings'] = $issues['warnings'];
         }
 
         return $tokens;
     }
 
     /**
-     * Returns the errors/warnings for each tokenable class. Kept separate (and
-     * by-value) so the token map itself is never mutated through a reference.
+     * Validates the registered tokenable configs and returns two class-keyed maps:
+     * [errors, warnings]. Kept separate from the token map, and accumulating into
+     * uniform list<string> maps (never shaped-array mutation), so it stays clean at
+     * PHPStan max.
      *
-     * @param array<class-string, TokenRow> $tokens
+     * @param array<class-string, Tokenable> $registered
      *
-     * @return array<class-string, array{errors: list<string>, warnings: list<string>}>
+     * @return array{0: array<class-string, list<string>>, 1: array<class-string, list<string>>}
      */
-    private function validate(array $tokens): array
+    private function validate(array $registered): array
     {
         $separator = $this->tokenizer->getSeparator();
 
-        /** @var array<class-string, array{errors: list<string>, warnings: list<string>}> $issues */
-        $issues = [];
+        /** @var array<class-string, list<string>> $errors */
+        $errors = [];
+        /** @var array<class-string, list<string>> $warnings */
+        $warnings = [];
         /** @var array<string, list<class-string>> $byTriplet */
         $byTriplet = [];
         /** @var array<string, class-string> $byPrefix */
         $byPrefix = [];
 
-        foreach ($tokens as $name => $entry) {
-            $issues[$name] ??= ['errors' => [], 'warnings' => []];
-
-            $tripletKey = sprintf('%d.%d.%d', $entry['prime'], $entry['inverse'], $entry['random']);
+        foreach ($registered as $name => $config) {
+            $tripletKey = sprintf('%d.%d.%d', $config->prime, $config->inverse, $config->random);
             if (isset($byTriplet[$tripletKey])) {
                 foreach ($byTriplet[$tripletKey] as $existing) {
-                    $issues[$existing] ??= ['errors' => [], 'warnings' => []];
-                    $issues[$name]['errors'][] = sprintf('Triplet collides with %s', $existing);
-                    $issues[$existing]['errors'][] = sprintf('Triplet collides with %s', $name);
+                    $errors[$name][] = sprintf('Triplet collides with %s', $existing);
+                    $errors[$existing][] = sprintf('Triplet collides with %s', $name);
                 }
             }
             $byTriplet[$tripletKey][] = $name;
 
-            if (isset($byPrefix[$entry['prefix']])) {
-                $issues[$name]['errors'][] = sprintf(
-                    'Prefix "%s" is already used by %s',
-                    $entry['prefix'],
-                    $byPrefix[$entry['prefix']],
-                );
+            if (isset($byPrefix[$config->prefix])) {
+                $errors[$name][] = sprintf('Prefix "%s" is already used by %s', $config->prefix, $byPrefix[$config->prefix]);
             } else {
-                $byPrefix[$entry['prefix']] = $name;
+                $byPrefix[$config->prefix] = $name;
             }
 
-            if (str_contains($entry['prefix'], $separator)) {
-                $issues[$name]['errors'][] = sprintf(
+            if (str_contains($config->prefix, $separator)) {
+                $errors[$name][] = sprintf(
                     'Prefix "%s" contains the token separator "%s", which will break decoding.',
-                    $entry['prefix'],
+                    $config->prefix,
                     $separator,
                 );
             }
 
-            if (strlen($entry['prefix']) < 3) {
-                $issues[$name]['warnings'][] = sprintf(
-                    'Prefix "%s" is shorter than 3 characters; collisions are likelier.',
-                    $entry['prefix'],
-                );
+            if (strlen($config->prefix) < 3) {
+                $warnings[$name][] = sprintf('Prefix "%s" is shorter than 3 characters; collisions are likelier.', $config->prefix);
             }
 
-            if ($entry['prime'] <= 0 || $entry['prime'] > self::OPTIMUS_MAX_INT) {
-                $issues[$name]['errors'][] = sprintf(
-                    'Prime %d is outside Optimus range (1..%d).',
-                    $entry['prime'],
-                    self::OPTIMUS_MAX_INT,
-                );
+            if ($config->prime <= 0 || $config->prime > self::OPTIMUS_MAX_INT) {
+                $errors[$name][] = sprintf('Prime %d is outside Optimus range (1..%d).', $config->prime, self::OPTIMUS_MAX_INT);
             }
         }
 
-        return $issues;
+        return [$errors, $warnings];
     }
 
     /** @return list<InboundRow> */
