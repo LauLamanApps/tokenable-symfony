@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace LauLamanApps\Tokenable;
 
+use Symfony\Bundle\WebProfilerBundle\WebProfilerBundle;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
+use Twig\Extension\AbstractExtension;
 
 final class TokenableBundle extends AbstractBundle
 {
@@ -38,13 +40,17 @@ final class TokenableBundle extends AbstractBundle
 
         $container->import('../config/services.php');
 
-        // The Twig filter is only useful when Twig is installed.
-        if ($builder->hasExtension('twig')) {
+        // NB: $builder->hasExtension() is unreliable here — loadExtension() runs against a
+        // per-extension temporary container that has no other bundle's extension registered.
+        // Gate on class availability instead (deterministic, autoload-based).
+
+        // The |token Twig filter is only registered when Twig is installed.
+        if (class_exists(AbstractExtension::class)) {
             $container->import('../config/twig.php');
         }
 
-        // The profiler panel is only registered when the web profiler is enabled (dev/test).
-        if ($builder->hasExtension('web_profiler')) {
+        // The profiler panel is only registered when the web profiler is available (dev/test).
+        if (class_exists(WebProfilerBundle::class)) {
             $container->import('../config/profiler.php');
         }
     }

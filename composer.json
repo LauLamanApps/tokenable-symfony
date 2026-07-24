@@ -26,6 +26,7 @@
         "phpstan/phpstan": "^2.0",
         "phpunit/phpunit": "^11.5",
         "symfony/framework-bundle": "^7.1 || ^8.0",
+        "symfony/web-profiler-bundle": "^7.1 || ^8.0",
         "twig/twig": "^3.0"
     },
     "suggest": {
