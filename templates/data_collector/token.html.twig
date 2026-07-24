@@ -1,0 +1,256 @@
+{% extends '@WebProfiler/Profiler/layout.html.twig' %}
+
+{% block toolbar %}
+    {% set total = collector.inbound|length + collector.generations|length %}
+    {% if total > 0 or collector.errors|length > 0 %}
+        {% set icon %}
+            <svg fill="currentColor" height="24" width="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 350">
+                <path d="M156.834,62.487c-16.939,0-30.72,8.972-30.72,20s13.781,20,30.72,20s30.719-8.972,30.719-20S173.773,62.487,156.834,62.487z"/>
+                <path d="M267.013,329.333c-10.513,8.301-23.41,12.82-37.01,12.82c-13.231,0-25.803-4.276-36.155-12.153H77.855c-19.514,0-35.39-15.875-35.39-35.39v-19.218c9.604,7.996,21.945,12.811,35.39,12.811h92.562c-0.191-1.957-0.288-3.935-0.288-5.927c0-4.823,0.576-9.555,1.678-14.128H77.855c-19.514,0-35.39-15.876-35.39-35.39v-19.061c9.604,7.998,21.943,12.818,35.39,12.818h130.301c6.866-2.686,14.238-4.107,21.834-4.107c2.371,0,4.74,0.14,7.09,0.418l42.653-42.655c3.243-3.239,7.18-5.542,11.47-6.782v-118c0-30.542-24.848-55.39-55.39-55.39H77.855c-30.542,0-55.39,24.848-55.39,55.39v177.368c0,0.019,0.002,0.037,0.002,0.055h-0.002v61.797c0,30.542,24.848,55.39,55.39,55.39h157.958c17.403,0,32.948-8.075,43.11-20.667H267.013z"/>
+            </svg>
+            <span class="sf-toolbar-value">{{ total }}</span>
+            <span class="sf-toolbar-info-piece-additional-detail">
+                <span class="sf-toolbar-label">tokens</span>
+            </span>
+        {% endset %}
+
+        {% set text %}
+            <div class="sf-toolbar-info-piece">
+                <b>Inbound tokens</b>
+                <span>{{ collector.inbound|length }}</span>
+            </div>
+            <div class="sf-toolbar-info-piece">
+                <b>Generated URLs</b>
+                <span>{{ collector.generations|length }}</span>
+            </div>
+            <div class="sf-toolbar-info-piece">
+                <b>Tokenable classes</b>
+                <span>{{ collector.tokens|length }}</span>
+            </div>
+            <div class="sf-toolbar-info-piece">
+                <b>Triplet collisions / errors</b>
+                <span class="sf-toolbar-status sf-toolbar-status-{{ collector.errors|length > 0 ? 'red' : 'green' }}">
+                    {{ collector.errors|length }}
+                </span>
+            </div>
+        {% endset %}
+
+        {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', { link: true }) }}
+    {% endif %}
+{% endblock %}
+
+{% block menu %}
+    <span class="label{% if collector.tokens|length == 0 %} disabled{% endif %}">
+        <span class="icon">
+            <svg fill="currentColor" height="24" width="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 350">
+                <path d="M156.834,62.487c-16.939,0-30.72,8.972-30.72,20s13.781,20,30.72,20s30.719-8.972,30.719-20S173.773,62.487,156.834,62.487z"/>
+                <path d="M267.013,329.333c-10.513,8.301-23.41,12.82-37.01,12.82c-13.231,0-25.803-4.276-36.155-12.153H77.855c-19.514,0-35.39-15.875-35.39-35.39v-19.218c9.604,7.996,21.945,12.811,35.39,12.811h92.562c-0.191-1.957-0.288-3.935-0.288-5.927c0-4.823,0.576-9.555,1.678-14.128H77.855c-19.514,0-35.39-15.876-35.39-35.39v-19.061c9.604,7.998,21.943,12.818,35.39,12.818h130.301c6.866-2.686,14.238-4.107,21.834-4.107c2.371,0,4.74,0.14,7.09,0.418l42.653-42.655c3.243-3.239,7.18-5.542,11.47-6.782v-118c0-30.542-24.848-55.39-55.39-55.39H77.855c-30.542,0-55.39,24.848-55.39,55.39v177.368c0,0.019,0.002,0.037,0.002,0.055h-0.002v61.797c0,30.542,24.848,55.39,55.39,55.39h157.958c17.403,0,32.948-8.075,43.11-20.667H267.013z"/>
+            </svg>
+        </span>
+        <strong>URL tokens</strong>
+        {% set badge = collector.inbound|length + collector.generations|length %}
+        {% if badge > 0 %}
+            <span class="count"><span>{{ badge }}</span></span>
+        {% endif %}
+    </span>
+{% endblock %}
+
+{% block panel %}
+    <h2>Tokenization</h2>
+
+    <div class="metrics">
+        <div class="metric-group">
+            <div class="metric">
+                <span class="value">{{ collector.inbound|length }}</span>
+                <span class="label">Inbound</span>
+            </div>
+            <div class="metric">
+                <span class="value">{{ collector.generations|length }}</span>
+                <span class="label">Generated</span>
+            </div>
+            <div class="metric">
+                <span class="value">{{ collector.tokens|length }}</span>
+                <span class="label">Classes</span>
+            </div>
+            <div class="metric">
+                <span class="value">{{ collector.errors|length }}</span>
+                <span class="label">Errors</span>
+            </div>
+            <div class="metric">
+                <span class="value">{{ collector.warnings|length }}</span>
+                <span class="label">Warnings</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="sf-tabs">
+        {# ─────────────────────────── Inbound tokens ─────────────────────────── #}
+        <div class="tab">
+            <h3 class="tab-title">
+                Inbound tokens
+                <span class="badge">{{ collector.inbound|length }}</span>
+            </h3>
+            <div class="tab-content">
+                {% if collector.inbound|length == 0 %}
+                    <div class="empty"><p>No tokens detected on this request.</p></div>
+                {% else %}
+                    <table>
+                        <thead><tr><th>Parameter</th><th>Source</th><th>Status</th><th>Token</th><th>Id</th><th>Class</th></tr></thead>
+                        <tbody>
+                            {% for entry in collector.inbound %}
+                                <tr>
+                                    <td>{{ entry.name }}</td>
+                                    <td><span class="badge">{{ entry.source }}</span></td>
+                                    <td>
+                                        {% if entry.status %}
+                                            {% set color = entry.status == 'success' ? 'green' : 'red' %}
+                                            <span class="sf-toolbar-status sf-toolbar-status-{{ color }}">{{ entry.status }}</span>
+                                        {% else %}
+                                            <span style="color: var(--color-muted, #888)">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><code>{{ entry.value }}</code></td>
+                                    <td>{{ entry.id ?? '—' }}</td>
+                                    <td><code>{{ entry.class }}</code></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </div>
+        </div>
+
+        {# ─────────────────────────── Generated URLs ─────────────────────────── #}
+        <div class="tab">
+            <h3 class="tab-title">
+                Generated URLs
+                <span class="badge">{{ collector.generations|length }}</span>
+            </h3>
+            <div class="tab-content">
+                {% if collector.generations|length == 0 %}
+                    <div class="empty"><p>No tokenized URLs were generated during this request.</p></div>
+                {% else %}
+                    <table>
+                        <thead><tr><th>Route</th><th>Class</th><th>Id</th><th>Token</th></tr></thead>
+                        <tbody>
+                            {% for entry in collector.generations %}
+                                <tr>
+                                    <td><code>{{ entry.route }}</code></td>
+                                    <td><code>{{ entry.class }}</code></td>
+                                    <td>{{ entry.id }}</td>
+                                    <td><code>{{ entry.token }}</code></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </div>
+        </div>
+
+        {# ─────────────────────────── Classes ─────────────────────────── #}
+        <div class="tab">
+            <h3 class="tab-title">
+                Classes
+                <span class="badge">{{ collector.tokens|length }}</span>
+            </h3>
+            <div class="tab-content">
+                {% if collector.tokens|length == 0 %}
+                    <div class="empty"><p>No #[Tokenable] entities are registered.</p></div>
+                {% endif %}
+
+                {% for tokenable in collector.tokens %}
+                    <div class="card" style="text-align: left">
+                        <h3>
+                            <a href="{{ tokenable.class.file|file_link(tokenable.class.line) }}">{{ tokenable.class.name }}</a>
+                            {% if tokenable.errors is empty %}
+                                <span class="value value-is-icon" style="color: var(--metric-icon-green-color);">{{ source('@WebProfiler/Icon/yes.svg') }}</span>
+                            {% else %}
+                                <span class="value value-is-icon" style="color: var(--metric-icon-red-color);">{{ source('@WebProfiler/Icon/no.svg') }}</span>
+                            {% endif %}
+                        </h3>
+                        <div class="metrics" style="margin: 0;">
+                            <div class="metric">
+                                <span class="value">{{ tokenable.prefix }}</span>
+                                <span class="label">Prefix</span>
+                            </div>
+                            <div class="metric-divider"></div>
+                            <div class="metric-group">
+                                <div class="metric">
+                                    <span class="value">{{ tokenable.prime }}</span>
+                                    <span class="label">Prime</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="value">{{ tokenable.inverse }}</span>
+                                    <span class="label">Inverse</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="value">{{ tokenable.random }}</span>
+                                    <span class="label">Random</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h4 style="margin-top: 1rem;">Sample encodings</h4>
+                        <table style="margin-top: 0">
+                            <thead><tr><th>Id</th><th>Token</th></tr></thead>
+                            <tbody>
+                                {% for id, token in tokenable.samples %}
+                                    <tr><td>{{ id }}</td><td><code>{{ token }}</code></td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+
+                        {% if tokenable.errors is not empty %}
+                            <div style="color: var(--metric-icon-red-color); margin-top: 1rem;">
+                                <strong>Errors:</strong>
+                                <ul style="margin: 0">
+                                    {% for error in tokenable.errors %}
+                                        <li style="margin: 0">{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                        {% if tokenable.warnings is not empty %}
+                            <div style="color: var(--metric-icon-orange-color, #d97706); margin-top: 1rem;">
+                                <strong>Warnings:</strong>
+                                <ul style="margin: 0">
+                                    {% for warning in tokenable.warnings %}
+                                        <li style="margin: 0">{{ warning }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {# ─────────────────────────── Route Map ─────────────────────────── #}
+        <div class="tab">
+            <h3 class="tab-title">
+                Route map
+                <span class="badge">{{ collector.routeMap|length }}</span>
+            </h3>
+            <div class="tab-content">
+                {% if collector.routeMap|length == 0 %}
+                    <div class="empty"><p>No routes are bound to a Tokenable entity.</p></div>
+                {% else %}
+                    <table>
+                        <thead><tr><th>Route</th><th>Param</th><th>Entity</th></tr></thead>
+                        <tbody>
+                            {% for routeName, vars in collector.routeMap %}
+                                {% for var, class in vars %}
+                                    <tr>
+                                        <td><code>{{ routeName }}</code></td>
+                                        <td><code>{{ var }}</code></td>
+                                        <td><code>{{ class }}</code></td>
+                                    </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

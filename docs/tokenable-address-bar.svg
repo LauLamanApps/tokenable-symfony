@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 422" width="720" height="422" font-size="14" role="img" aria-label="The URL /invoice/12/view becomes /invoice/inv_t5adar/view">
+  <style>
+    .sans { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+  </style>
+
+  <rect x="0" y="0" width="720" height="422" rx="18" fill="#0f172a"/>
+
+  <text x="360" y="41" text-anchor="middle" class="sans" font-size="17" font-weight="700" fill="#f8fafc">Sequential IDs in&#160;&#160;—&#160;&#160;opaque tokens out</text>
+
+  <!-- ── Before ───────────────────────────────────────────── -->
+  <rect x="60" y="69" width="600" height="84" rx="12" fill="#000000" opacity="0.25"/>
+  <rect x="60" y="66" width="600" height="84" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+  <circle cx="82" cy="84" r="4.5" fill="#ff5f57"/>
+  <circle cx="98" cy="84" r="4.5" fill="#febc2e"/>
+  <circle cx="114" cy="84" r="4.5" fill="#28c840"/>
+  <rect x="76" y="100" width="568" height="34" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+  <rect x="88" y="115" width="9" height="7" rx="1.5" fill="#94a3b8"/>
+  <path d="M90 115 v-2 a2.5 2.5 0 0 1 5 0 v2" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="112" y="117" class="mono" dominant-baseline="central" textLength="260" lengthAdjust="spacingAndGlyphs" fill="#475569">example.com/invoice/</text>
+  <rect x="368" y="106" width="34" height="22" rx="6" fill="#fee2e2"/>
+  <text x="372" y="117" class="mono" dominant-baseline="central" textLength="26" lengthAdjust="spacingAndGlyphs" font-weight="700" fill="#b91c1c">12</text>
+  <text x="398" y="117" class="mono" dominant-baseline="central" textLength="65" lengthAdjust="spacingAndGlyphs" fill="#475569">/view</text>
+
+  <text x="360" y="170" text-anchor="middle" class="sans" font-size="11" fill="#f87171">guessable&#160;·&#160;leaks how many invoices exist&#160;·&#160;invites enumeration</text>
+
+  <!-- ── Transform ────────────────────────────────────────── -->
+  <rect x="250" y="182" width="220" height="30" rx="15" fill="#1e293b" stroke="#334155"/>
+  <text x="360" y="201" text-anchor="middle" class="sans" font-size="12" fill="#e2e8f0">obfuscate&#160;·&#160;Optimus + base36</text>
+  <path d="M360 214 v16" stroke="#64748b" stroke-width="2"/>
+  <path d="M354 226 L360 233 L366 226" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <text x="360" y="252" text-anchor="middle" class="sans" font-size="11" fill="#4ade80">opaque&#160;·&#160;non-enumerable&#160;·&#160;decodes only to an Invoice</text>
+
+  <!-- ── After ────────────────────────────────────────────── -->
+  <rect x="60" y="269" width="600" height="84" rx="12" fill="#000000" opacity="0.25"/>
+  <rect x="60" y="266" width="600" height="84" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+  <circle cx="82" cy="284" r="4.5" fill="#ff5f57"/>
+  <circle cx="98" cy="284" r="4.5" fill="#febc2e"/>
+  <circle cx="114" cy="284" r="4.5" fill="#28c840"/>
+  <rect x="76" y="300" width="568" height="34" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+  <rect x="88" y="315" width="9" height="7" rx="1.5" fill="#94a3b8"/>
+  <path d="M90 315 v-2 a2.5 2.5 0 0 1 5 0 v2" fill="none" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="112" y="317" class="mono" dominant-baseline="central" textLength="260" lengthAdjust="spacingAndGlyphs" fill="#475569">example.com/invoice/</text>
+  <rect x="368" y="306" width="138" height="22" rx="6" fill="#dcfce7"/>
+  <text x="372" y="317" class="mono" dominant-baseline="central" textLength="130" lengthAdjust="spacingAndGlyphs" font-weight="700" fill="#15803d">inv_3f9k2</text>
+  <text x="502" y="317" class="mono" dominant-baseline="central" textLength="65" lengthAdjust="spacingAndGlyphs" fill="#475569">/view</text>
+
+  <!-- ── Footnote ─────────────────────────────────────────── -->
+  <text x="360" y="380" text-anchor="middle" class="mono" font-size="12" fill="#cbd5e1">path('invoice_view', {invoice: invoice})</text>
+  <text x="360" y="400" text-anchor="middle" class="sans" font-size="11" fill="#64748b">→ your controller receives the loaded Invoice — or a clean 404 — with zero boilerplate</text>
+</svg>

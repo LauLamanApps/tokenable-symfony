@@ -1,0 +1,58 @@
+{
+    "name": "laulamanapps/tokenable-symfony",
+    "description": "Reversible, type-prefixed, non-enumerable tokens for Doctrine entities in Symfony. Attribute-driven, with automatic route/URL encoding, controller argument resolution and a profiler panel.",
+    "type": "symfony-bundle",
+    "keywords": ["symfony", "symfony-bundle", "doctrine", "token", "obfuscation", "optimus", "identifier", "url"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Laurens Laman",
+            "email": "laurens.laman@llaman.nl"
+        }
+    ],
+    "require": {
+        "php": ">=8.4",
+        "jenssegers/optimus": "^0.2.3",
+        "doctrine/orm": "^3.0",
+        "symfony/config": "^7.1 || ^8.0",
+        "symfony/console": "^7.3 || ^8.0",
+        "symfony/dependency-injection": "^7.1 || ^8.0",
+        "symfony/http-foundation": "^7.1 || ^8.0",
+        "symfony/http-kernel": "^7.1 || ^8.0",
+        "symfony/routing": "^7.1 || ^8.0"
+    },
+    "require-dev": {
+        "phpseclib/phpseclib": "^2.0",
+        "phpstan/phpstan": "^2.0",
+        "phpunit/phpunit": "^11.5",
+        "symfony/framework-bundle": "^7.1 || ^8.0",
+        "twig/twig": "^3.0"
+    },
+    "suggest": {
+        "phpseclib/phpseclib": "Required by the app:tokenable:generate command to produce fresh Optimus triplets",
+        "twig/twig": "Enables the |token Twig filter",
+        "symfony/framework-bundle": "Enables the web profiler data-collector panel for tokens"
+    },
+    "autoload": {
+        "psr-4": {
+            "LauLamanApps\\Tokenable\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "LauLamanApps\\Tokenable\\Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "scripts": {
+        "test": "phpunit",
+        "phpstan": "phpstan analyse"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    }
+}
