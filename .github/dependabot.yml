@@ -5,6 +5,11 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
+    ignore:
+      # jenssegers/optimus (Energon triplet generation) only works with phpseclib 2.x
+      # — it uses Crypt\Random and BigInteger::randomPrime(), removed in 3.0.
+      - dependency-name: "phpseclib/phpseclib"
+        update-types: ["version-update:semver-major"]
     groups:
       symfony:
         patterns:
