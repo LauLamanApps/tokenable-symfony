@@ -21,8 +21,8 @@ final readonly class GenerateTokenableCommand
         #[Argument(description: 'Prefix for the new Tokenable attribute (e.g. "fest").')]
         ?string $prefix = null,
     ): int {
-        if (!class_exists(Energon::class) || !class_exists(\phpseclib\Math\BigInteger::class)) {
-            $io->error('Triplet generation requires phpseclib/phpseclib (install via composer require --dev phpseclib/phpseclib:^2.0).');
+        if (!class_exists(Energon::class) || !class_exists(\phpseclib3\Math\BigInteger::class)) {
+            $io->error('Triplet generation requires phpseclib/phpseclib (install via composer require --dev phpseclib/phpseclib:^3.0).');
 
             return Command::FAILURE;
         }
