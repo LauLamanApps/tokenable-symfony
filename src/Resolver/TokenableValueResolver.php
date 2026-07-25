@@ -42,7 +42,12 @@ final class TokenableValueResolver implements ValueResolverInterface
             throw new NotFoundHttpException();
         }
 
-        if (!is_a($resolvedClass, $expectedClass, true)) {
+        // The class registered for a token's prefix may be an abstract base of
+        // the requested type, or the requested type may be a concrete subclass
+        // of it (Doctrine inheritance). Reject early only when the two share no
+        // ancestry; otherwise let find() resolve the concrete subclass and
+        // verify the loaded instance below.
+        if (!is_a($resolvedClass, $expectedClass, true) && !is_a($expectedClass, $resolvedClass, true)) {
             $this->recorder->recordResolution($token, $expectedClass, $resolvedClass, $id, 'class_mismatch');
             throw new NotFoundHttpException();
         }
@@ -56,7 +61,15 @@ final class TokenableValueResolver implements ValueResolverInterface
             throw new NotFoundHttpException();
         }
 
-        $this->recorder->recordResolution($token, $expectedClass, $resolvedClass, $id, 'success');
+        // The concrete entity Doctrine returned may be a sibling subclass that
+        // does not match the requested type (e.g. a mnd_ token pointing at a
+        // CreditCardMandate while the action asks for a DirectDebitMandate).
+        if (!$entity instanceof $expectedClass) {
+            $this->recorder->recordResolution($token, $expectedClass, $entity::class, $id, 'class_mismatch');
+            throw new NotFoundHttpException();
+        }
+
+        $this->recorder->recordResolution($token, $expectedClass, $entity::class, $id, 'success');
 
         return [$entity];
     }

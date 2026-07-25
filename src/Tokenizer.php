@@ -118,13 +118,12 @@ final class Tokenizer
             throw new \LogicException(\sprintf('Class "%s" does not exist.', $class));
         }
 
-        $reflection = new \ReflectionClass($class);
-        $attributes = $reflection->getAttributes(Tokenable::class);
-        if ([] === $attributes) {
+        $config = $this->resolveConfig($class);
+        if (null === $config) {
             throw new \LogicException(\sprintf('Class "%s" is not marked with #[Tokenable].', $class));
         }
 
-        return $this->configByClass[$class] = $attributes[0]->newInstance();
+        return $this->configByClass[$class] = $config;
     }
 
     /** @return array<class-string, Tokenable> */
@@ -144,7 +143,32 @@ final class Tokenizer
             return false;
         }
 
-        return [] !== (new \ReflectionClass($class))->getAttributes(Tokenable::class);
+        return null !== $this->resolveConfig($class);
+    }
+
+    /**
+     * Resolves the #[Tokenable] attribute for a class, walking up the parent
+     * chain. This lets a concrete entity inherit the attribute declared on an
+     * abstract base (Doctrine single-table/JOINED inheritance): encoding a
+     * subclass instance yields the shared-prefix token of its base.
+     *
+     * Only the declaring class is registered as a prefix owner (see
+     * buildPrefixMap), so decoding stays unambiguous — the shared prefix maps
+     * back to the base class and Doctrine's discriminator loads the concrete
+     * subclass.
+     *
+     * @param class-string $class
+     */
+    private function resolveConfig(string $class): ?Tokenable
+    {
+        for ($reflection = new \ReflectionClass($class); false !== $reflection; $reflection = $reflection->getParentClass()) {
+            $attributes = $reflection->getAttributes(Tokenable::class);
+            if ([] !== $attributes) {
+                return $attributes[0]->newInstance();
+            }
+        }
+
+        return null;
     }
 
     private function optimusFor(string $class, Tokenable $config): Optimus
@@ -172,6 +196,12 @@ final class Tokenizer
             if (!class_exists($class)) {
                 continue;
             }
+            // Only classes that *declare* the attribute own a prefix. Subclasses
+            // that merely inherit it (Doctrine inheritance) are intentionally
+            // skipped: registering them would map the shared prefix to several
+            // classes and make decoding ambiguous. Decoding resolves the prefix
+            // to the declaring base; Doctrine's discriminator loads the concrete
+            // subclass from there.
             $attributes = (new \ReflectionClass($class))->getAttributes(Tokenable::class);
             if ([] === $attributes) {
                 continue;
