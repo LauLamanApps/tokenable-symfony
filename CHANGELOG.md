@@ -10,3 +10,6 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Changed
+- Create new patch release on GitHub (TS-7)
+
