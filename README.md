@@ -103,6 +103,26 @@ Each entity gets its **own** triplet so tokens never collide across types. The p
 unique and must not contain the `_` separator. `getId()` may return an `int` or any value
 object exposing `getValue(): int`.
 
+#### Inheritance (abstract base + discriminator map)
+
+Declare `#[Tokenable]` **once** on an abstract Doctrine base that uses inheritance. Every
+concrete subclass inherits the attribute and shares one prefix and one token space:
+
+```php
+#[ORM\Entity]
+#[ORM\InheritanceType('JOINED')]
+#[ORM\DiscriminatorColumn(name: 'type', type: 'string')]
+#[ORM\DiscriminatorMap(['direct_debit' => DirectDebitMandate::class, 'credit_card' => CreditCardMandate::class])]
+#[Tokenable(prefix: 'mnd', prime: 1580030173, inverse: 59260789, random: 1163945558)]
+abstract class AbstractMandate { /* ... */ }
+```
+
+`encode(new DirectDebitMandate(...))` produces an `mnd_…` token; decoding resolves the prefix
+to the abstract base and Doctrine's discriminator loads the concrete subclass. Actions may
+type-hint either the abstract base or a concrete subclass — a token pointing at a sibling
+subclass then yields a `404`. Do **not** add a second `#[Tokenable]` to the subclasses: a
+duplicated prefix is rejected, and a distinct one would break the shared token space.
+
 ### 2. Generate tokens (automatic)
 
 ```twig
