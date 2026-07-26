@@ -15,10 +15,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @phpstan-type InboundRow array{name: string, value: string, id: int|null, class: string, source: string, status: string|null}
- * @phpstan-type GenerationRow array{route: string, class: string, id: int, token: string}
  * @phpstan-type ResolutionRow array{token: string, expected: string, class: string|null, id: int|null, status: string}
  * @phpstan-type TokenRow array{class: array{name: class-string, file: string|false, line: int|false}, prefix: string, prime: int, inverse: int, random: int, samples: array<int, string>, errors: list<string>, warnings: list<string>}
- * @phpstan-type CollectorData array{inbound: list<InboundRow>, tokens: array<class-string, TokenRow>, generations: list<GenerationRow>, routeMap: array<string, array<string, class-string>>, separator: string, base: int}
+ * @phpstan-type CollectorData array{inbound: list<InboundRow>, tokens: array<class-string, TokenRow>, routeMap: array<string, array<string, class-string>>, separator: string, base: int}
  */
 final class TokenCollector extends AbstractDataCollector
 {
@@ -61,7 +60,6 @@ final class TokenCollector extends AbstractDataCollector
         $this->data = [
             'inbound' => $inbound,
             'tokens' => $this->buildTokens(),
-            'generations' => $this->recorder->getGenerations(),
             'routeMap' => $this->urlGenerator->getRouteMappings(),
             'separator' => $this->tokenizer->getSeparator(),
             'base' => $this->tokenizer->getBase(),
@@ -135,7 +133,7 @@ final class TokenCollector extends AbstractDataCollector
     /** @return array<class-string, TokenRow> */
     private function buildTokens(): array
     {
-        $registered = $this->tokenizer->getRegistered();
+        $registered = $this->declaringOnly($this->tokenizer->getRegistered());
         [$errors, $warnings] = $this->validate($registered);
 
         $tokens = [];
@@ -164,6 +162,30 @@ final class TokenCollector extends AbstractDataCollector
         }
 
         return $tokens;
+    }
+
+    /**
+     * Keeps only classes that *declare* #[Tokenable] directly, dropping subclasses
+     * that merely inherit it through Doctrine inheritance. Those subclasses share
+     * their base's prefix and triplet by design (the Tokenizer registers the prefix
+     * once, on the declaring base — see Tokenizer::buildPrefixMap); listing them here
+     * would make validate() flag the intended sharing as a prefix/triplet collision.
+     *
+     * getRegistered() can contain such subclasses because configFor() caches an
+     * inherited config under the concrete class the moment a subclass instance is
+     * encoded during the request.
+     *
+     * @param array<class-string, Tokenable> $registered
+     *
+     * @return array<class-string, Tokenable>
+     */
+    private function declaringOnly(array $registered): array
+    {
+        return array_filter(
+            $registered,
+            static fn (string $class): bool => [] !== (new \ReflectionClass($class))->getAttributes(Tokenable::class),
+            ARRAY_FILTER_USE_KEY,
+        );
     }
 
     /**
@@ -235,12 +257,6 @@ final class TokenCollector extends AbstractDataCollector
     public function getTokens(): array
     {
         return array_values($this->data()['tokens']);
-    }
-
-    /** @return list<GenerationRow> */
-    public function getGenerations(): array
-    {
-        return $this->data()['generations'];
     }
 
     /** @return array<string, array<string, class-string>> */
