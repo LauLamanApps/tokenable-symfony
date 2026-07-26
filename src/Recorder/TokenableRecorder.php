@@ -13,9 +13,6 @@ use Symfony\Contracts\Service\ResetInterface;
  */
 final class TokenableRecorder implements ResetInterface
 {
-    /** @var list<array{route: string, class: string, id: int, token: string}> */
-    private array $generations = [];
-
     /** @var list<array{token: string, expected: string, class: ?string, id: ?int, status: string}> */
     private array $resolutions = [];
 
@@ -23,14 +20,6 @@ final class TokenableRecorder implements ResetInterface
         #[Autowire('%kernel.debug%')]
         private readonly bool $enabled = false,
     ) {
-    }
-
-    public function recordGeneration(string $route, string $class, int $id, string $token): void
-    {
-        if (!$this->enabled) {
-            return;
-        }
-        $this->generations[] = ['route' => $route, 'class' => $class, 'id' => $id, 'token' => $token];
     }
 
     public function recordResolution(
@@ -52,12 +41,6 @@ final class TokenableRecorder implements ResetInterface
         ];
     }
 
-    /** @return list<array{route: string, class: string, id: int, token: string}> */
-    public function getGenerations(): array
-    {
-        return $this->generations;
-    }
-
     /** @return list<array{token: string, expected: string, class: ?string, id: ?int, status: string}> */
     public function getResolutions(): array
     {
@@ -66,7 +49,6 @@ final class TokenableRecorder implements ResetInterface
 
     public function reset(): void
     {
-        $this->generations = [];
         $this->resolutions = [];
     }
 }

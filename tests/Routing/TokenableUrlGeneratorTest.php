@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace LauLamanApps\Tokenable\Tests\Routing;
 
-use LauLamanApps\Tokenable\Recorder\TokenableRecorder;
 use LauLamanApps\Tokenable\Routing\TokenableUrlGenerator;
 use LauLamanApps\Tokenable\Tests\CreatesTokenizer;
 use LauLamanApps\Tokenable\Tests\Fixtures\FooController;
@@ -53,6 +52,16 @@ final class TokenableUrlGeneratorTest extends TestCase
         self::assertSame(42, $captured['foo']);
     }
 
+    public function testLeavesAlreadyEncodedTokenStringUntouched(): void
+    {
+        $token = $this->createTokenizer()->encode(FooEntity::class, 42);
+
+        $captured = $this->generate(['foo' => $token]);
+
+        // A string value is already a token: it must pass through unchanged.
+        self::assertSame($token, $captured['foo']);
+    }
+
     /**
      * @param array<string, mixed> $parameters
      *
@@ -77,7 +86,6 @@ final class TokenableUrlGeneratorTest extends TestCase
         $generator = new TokenableUrlGenerator(
             $inner,
             $this->createTokenizer([FooEntity::class]),
-            new TokenableRecorder(enabled: false),
             $this->cacheDir,
         );
 

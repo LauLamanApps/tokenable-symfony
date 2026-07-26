@@ -35,7 +35,6 @@ return static function (Symfony\Component\DependencyInjection\Loader\Configurato
         ->args([
             service('.inner'),
             service(Tokenizer::class),
-            service(TokenableRecorder::class),
             '%kernel.cache_dir%',
         ]);
 

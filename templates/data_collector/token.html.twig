@@ -1,7 +1,7 @@
 {% extends '@WebProfiler/Profiler/layout.html.twig' %}
 
 {% block toolbar %}
-    {% set total = collector.inbound|length + collector.generations|length %}
+    {% set total = collector.inbound|length %}
     {% if total > 0 or collector.errors|length > 0 or collector.warnings|length > 0 %}
         {% set icon %}
             <svg fill="currentColor" height="24" width="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -17,10 +17,6 @@
             <div class="sf-toolbar-info-piece">
                 <b>Inbound tokens</b>
                 <span>{{ collector.inbound|length }}</span>
-            </div>
-            <div class="sf-toolbar-info-piece">
-                <b>Generated URLs</b>
-                <span>{{ collector.generations|length }}</span>
             </div>
             <div class="sf-toolbar-info-piece">
                 <b>Tokenable classes</b>
@@ -59,7 +55,7 @@
             </svg>
         </span>
         <strong>URL tokens</strong>
-        {% set badge = collector.inbound|length + collector.generations|length %}
+        {% set badge = collector.inbound|length %}
         {% if badge > 0 %}
             <span class="count"><span>{{ badge }}</span></span>
         {% endif %}
@@ -74,10 +70,6 @@
             <div class="metric">
                 <span class="value">{{ collector.inbound|length }}</span>
                 <span class="label">Inbound</span>
-            </div>
-            <div class="metric">
-                <span class="value">{{ collector.generations|length }}</span>
-                <span class="label">Generated</span>
             </div>
             <div class="metric">
                 <span class="value">{{ collector.tokens|length }}</span>
@@ -123,33 +115,6 @@
                                     <td><code>{{ entry.value }}</code></td>
                                     <td>{{ entry.id ?? '—' }}</td>
                                     <td><code>{{ entry.class }}</code></td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                {% endif %}
-            </div>
-        </div>
-
-        {# ─────────────────────────── Generated URLs ─────────────────────────── #}
-        <div class="tab">
-            <h3 class="tab-title">
-                Generated URLs
-                <span class="badge">{{ collector.generations|length }}</span>
-            </h3>
-            <div class="tab-content">
-                {% if collector.generations|length == 0 %}
-                    <div class="empty"><p>No tokenized URLs were generated during this request.</p></div>
-                {% else %}
-                    <table>
-                        <thead><tr><th>Route</th><th>Class</th><th>Id</th><th>Token</th></tr></thead>
-                        <tbody>
-                            {% for entry in collector.generations %}
-                                <tr>
-                                    <td><code>{{ entry.route }}</code></td>
-                                    <td><code>{{ entry.class }}</code></td>
-                                    <td>{{ entry.id }}</td>
-                                    <td><code>{{ entry.token }}</code></td>
                                 </tr>
                             {% endfor %}
                         </tbody>

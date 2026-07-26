@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace LauLamanApps\Tokenable\Routing;
 
-use LauLamanApps\Tokenable\Recorder\TokenableRecorder;
 use LauLamanApps\Tokenable\Tokenizer;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\CacheWarmer\WarmableInterface;
@@ -23,7 +22,6 @@ final class TokenableUrlGenerator implements RouterInterface, RequestMatcherInte
     public function __construct(
         private readonly RouterInterface $inner,
         private readonly Tokenizer $tokenizer,
-        private readonly TokenableRecorder $recorder,
         private readonly string $cacheDir,
     ) {
     }
@@ -31,26 +29,18 @@ final class TokenableUrlGenerator implements RouterInterface, RequestMatcherInte
     /** @param array<string, mixed> $parameters */
     public function generate(string $name, array $parameters = [], int $referenceType = self::ABSOLUTE_PATH): string
     {
-        $mappings = $this->getMappings();
-        if (isset($mappings[$name])) {
-            foreach ($mappings[$name] as $param => $class) {
-                if (!isset($parameters[$param])) {
-                    continue;
-                }
+        // Encode every mapped id/entity parameter into its token. Only mapped
+        // parameters are auto-encoded here; a string value is already a token.
+        foreach ($this->getMappings()[$name] ?? [] as $param => $class) {
+            if (!isset($parameters[$param])) {
+                continue;
+            }
 
-                $value = $parameters[$param];
-                if (is_int($value)) {
-                    $token = $this->tokenizer->encode($class, $value);
-                    $parameters[$param] = $token;
-                    $this->recorder->recordGeneration($name, $class, $value, $token);
-                } elseif (is_object($value) && is_a($value, $class)) {
-                    $token = $this->tokenizer->encode($value);
-                    $parameters[$param] = $token;
-                    $id = method_exists($value, 'getId') ? $value->getId() : null;
-                    if (is_int($id)) {
-                        $this->recorder->recordGeneration($name, $class, $id, $token);
-                    }
-                }
+            $value = $parameters[$param];
+            if (is_int($value)) {
+                $parameters[$param] = $this->tokenizer->encode($class, $value);
+            } elseif (is_object($value) && is_a($value, $class)) {
+                $parameters[$param] = $this->tokenizer->encode($value);
             }
         }
 
