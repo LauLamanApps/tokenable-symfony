@@ -22,7 +22,6 @@ use Symfony\Component\HttpFoundation\Response;
 final class TokenCollector extends AbstractDataCollector
 {
     private const SAMPLE_IDS = [1, 42, 1000, 99999];
-    private const OPTIMUS_MAX_INT = 2147483647;
 
     public function __construct(
         private readonly Tokenizer $tokenizer,
@@ -239,8 +238,8 @@ final class TokenCollector extends AbstractDataCollector
                 $warnings[$name][] = sprintf('Prefix "%s" is shorter than 3 characters; collisions are likelier.', $config->prefix);
             }
 
-            if ($config->prime <= 0 || $config->prime > self::OPTIMUS_MAX_INT) {
-                $errors[$name][] = sprintf('Prime %d is outside Optimus range (1..%d).', $config->prime, self::OPTIMUS_MAX_INT);
+            if ($config->prime <= 0 || $config->prime > Tokenizer::MAX_ID) {
+                $errors[$name][] = sprintf('Prime %d is outside the 31-bit range (1..%d).', $config->prime, Tokenizer::MAX_ID);
             }
         }
 

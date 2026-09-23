@@ -23,6 +23,7 @@ final class TokenableUrlGenerator implements RouterInterface, RequestMatcherInte
         private readonly RouterInterface $inner,
         private readonly Tokenizer $tokenizer,
         private readonly string $cacheDir,
+        private readonly bool $debug = false,
     ) {
     }
 
@@ -105,6 +106,20 @@ final class TokenableUrlGenerator implements RouterInterface, RequestMatcherInte
     {
         if (null !== $this->mappings) {
             return $this->mappings;
+        }
+
+        /*
+         * In debug the inner router rebuilds its generator the moment a route
+         * or controller changes, but the warmed mapping file is only rewritten
+         * by cache:warmup. Reading it here would keep handing out a map that no
+         * longer describes the routes: a parameter whose mapping is missing is
+         * passed through unencoded, so the entity itself reaches the inner
+         * generator and dies in preg_match() against the route requirement --
+         * a fatal error that points at the template, not at this cache. Rebuild
+         * instead; the result is memoised for the rest of the request.
+         */
+        if ($this->debug) {
+            return $this->mappings = $this->buildMappings();
         }
 
         $cacheFile = $this->cacheDir.self::CACHE_FILE;

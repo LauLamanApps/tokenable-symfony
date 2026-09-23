@@ -5,17 +5,21 @@ declare(strict_types=1);
 namespace LauLamanApps\Tokenable;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Jenssegers\Optimus\Optimus;
 use LauLamanApps\Tokenable\Attribute\Tokenable;
 use LauLamanApps\Tokenable\Exception\InvalidTokenException;
 
 final class Tokenizer
 {
+    /**
+     * Knuth's multiplicative hash runs over 31 bits, so an id must fit in
+     * 1..2147483647 and a prime must too. This is the same range Optimus used
+     * with its default size; tokens minted before that dependency was dropped
+     * decode to the very same ids.
+     */
+    public const int MAX_ID = 2147483647;
+
     /** @var array<class-string, Tokenable> */
     private array $configByClass = [];
-
-    /** @var array<string, Optimus> */
-    private array $optimusByClass = [];
 
     /** @var array<string, class-string>|null */
     private ?array $classByPrefix = null;
@@ -25,6 +29,13 @@ final class Tokenizer
         private readonly string $separator = '_',
         private readonly int $base = 36,
     ) {
+        if (\PHP_INT_SIZE < 8) {
+            // The hash multiplies two values just under 2^31, so the product
+            // needs 62 bits to stay exact. On a 32-bit build it silently
+            // becomes a float and every token comes out wrong, which is worse
+            // than refusing to start.
+            throw new \RuntimeException('Tokenable requires a 64-bit PHP build.');
+        }
     }
 
     public function getSeparator(): string
@@ -53,7 +64,7 @@ final class Tokenizer
         }
 
         $config = $this->configFor($class);
-        $encoded = $this->optimusFor($class, $config)->encode($id);
+        $encoded = $this->obfuscate($id, $config);
 
         return $config->prefix.$this->separator.base_convert((string) $encoded, 10, $this->base);
     }
@@ -75,9 +86,23 @@ final class Tokenizer
 
         $class = $this->classForPrefix($prefix);
         $config = $this->configFor($class);
-        $id = $this->optimusFor($class, $config)->decode((int) base_convert($payload, $this->base, 10));
+        $id = $this->deobfuscate((int) base_convert($payload, $this->base, 10), $config);
 
         return [$class, $id];
+    }
+
+    /**
+     * Decodes a token and loads the matching entity through the EntityManager.
+     *
+     * Returns null when no entity exists for the decoded id. The decoded class
+     * may be an abstract base (Doctrine inheritance); Doctrine's discriminator
+     * loads the concrete subclass from there.
+     */
+    public function getEntity(string $token): ?object
+    {
+        [$class, $id] = $this->decode($token);
+
+        return $this->em->find($class, $id);
     }
 
     /**
@@ -171,9 +196,21 @@ final class Tokenizer
         return null;
     }
 
-    private function optimusFor(string $class, Tokenable $config): Optimus
+    /**
+     * Knuth's multiplicative hash: multiply by the prime, keep 31 bits, then
+     * XOR. Multiplying by the modular inverse undoes it. These two lines are
+     * the whole of what jenssegers/optimus contributed at runtime, inlined
+     * here because that package pins symfony/console to ^5||^6||^7 for a CLI
+     * command this bundle never calls -- which kept the bundle off Symfony 8.
+     */
+    private function obfuscate(int $id, Tokenable $config): int
     {
-        return $this->optimusByClass[$class] ??= new Optimus($config->prime, $config->inverse, $config->random);
+        return (($id * $config->prime) & self::MAX_ID) ^ $config->random;
+    }
+
+    private function deobfuscate(int $value, Tokenable $config): int
+    {
+        return (($value ^ $config->random) * $config->inverse) & self::MAX_ID;
     }
 
     /** @return class-string */

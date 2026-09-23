@@ -10,6 +10,7 @@ use LauLamanApps\Tokenable\Tests\Fixtures\DuplicatePrefixEntity;
 use LauLamanApps\Tokenable\Tests\Fixtures\FakeId;
 use LauLamanApps\Tokenable\Tests\Fixtures\FooEntity;
 use LauLamanApps\Tokenable\Tests\Fixtures\PlainEntity;
+use LauLamanApps\Tokenable\Tokenizer;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -153,5 +154,35 @@ final class TokenizerTest extends TestCase
         self::assertArrayHasKey(FooEntity::class, $registered);
         self::assertArrayHasKey(BarEntity::class, $registered);
         self::assertSame('foo', $registered[FooEntity::class]->prefix);
+    }
+
+    public function testGetEntityDecodesTokenAndLoadsThroughEntityManager(): void
+    {
+        $foo = new FooEntity(42);
+        $entityManager = $this->createEntityManager(fn (string $class, int $id): ?object => FooEntity::class === $class && 42 === $id ? $foo : null);
+        $tokenizer = new Tokenizer($entityManager);
+
+        $token = $tokenizer->encode(FooEntity::class, 42);
+
+        self::assertSame($foo, $tokenizer->getEntity($token));
+    }
+
+    public function testGetEntityReturnsNullWhenEntityIsNotFound(): void
+    {
+        $entityManager = $this->createEntityManager(fn (): ?object => null);
+        $tokenizer = new Tokenizer($entityManager);
+
+        $token = $tokenizer->encode(FooEntity::class, 42);
+
+        self::assertNull($tokenizer->getEntity($token));
+    }
+
+    public function testGetEntityRejectsMalformedTokens(): void
+    {
+        $tokenizer = $this->createTokenizer();
+
+        $this->expectException(InvalidTokenException::class);
+
+        $tokenizer->getEntity('missing-separator');
     }
 }

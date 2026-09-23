@@ -63,11 +63,44 @@ final class TokenableUrlGeneratorTest extends TestCase
     }
 
     /**
+     * The warmed mapping file is only rewritten by cache:warmup, while the
+     * inner router rebuilds itself as soon as a route changes. In debug the
+     * stale file must therefore be ignored, or a route added since the last
+     * warmup keeps its entity parameter unencoded -- which then reaches the
+     * inner generator as an object and fatals in preg_match().
+     */
+    public function testDebugIgnoresAMappingFileThatPredatesTheRoute(): void
+    {
+        file_put_contents(
+            $this->cacheDir.'/tokenable_routes.php',
+            '<?php return '.var_export(['some_older_route' => ['foo' => FooEntity::class]], true).';',
+        );
+
+        $captured = $this->generate(['foo' => new FooEntity(42)], debug: true);
+
+        self::assertSame($this->createTokenizer()->encode(FooEntity::class, 42), $captured['foo']);
+    }
+
+    public function testWithoutDebugTheWarmedMappingFileIsTrusted(): void
+    {
+        file_put_contents(
+            $this->cacheDir.'/tokenable_routes.php',
+            '<?php return '.var_export(['some_older_route' => ['foo' => FooEntity::class]], true).';',
+        );
+
+        $captured = $this->generate(['foo' => new FooEntity(42)], debug: false);
+
+        // Not in the warmed map, so it is handed to the inner router untouched
+        // -- exactly what a warmed prod cache is allowed to assume.
+        self::assertInstanceOf(FooEntity::class, $captured['foo']);
+    }
+
+    /**
      * @param array<string, mixed> $parameters
      *
      * @return array<string, mixed> the parameters the decorated (inner) router actually received
      */
-    private function generate(array $parameters, string $routeName = 'foo_show'): array
+    private function generate(array $parameters, string $routeName = 'foo_show', bool $debug = false): array
     {
         $collection = new RouteCollection();
         $collection->add('foo_show', new Route('/foo/{foo}', ['_controller' => FooController::class]));
@@ -87,6 +120,7 @@ final class TokenableUrlGeneratorTest extends TestCase
             $inner,
             $this->createTokenizer([FooEntity::class]),
             $this->cacheDir,
+            $debug,
         );
 
         $generator->generate($routeName, $parameters);

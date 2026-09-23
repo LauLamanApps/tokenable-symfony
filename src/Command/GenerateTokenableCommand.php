@@ -21,8 +21,11 @@ final readonly class GenerateTokenableCommand
         #[Argument(description: 'Prefix for the new Tokenable attribute (e.g. "fest").')]
         ?string $prefix = null,
     ): int {
+        // Runtime encoding is dependency-free (see Tokenizer::obfuscate()), but
+        // generating a prime/inverse pair is not, so both packages are optional
+        // and only this command needs them.
         if (!class_exists(Energon::class) || !class_exists(\phpseclib3\Math\BigInteger::class)) {
-            $io->error('Triplet generation requires phpseclib/phpseclib (install via composer require --dev phpseclib/phpseclib:^3.0).');
+            $io->error('Triplet generation requires jenssegers/optimus and phpseclib/phpseclib (install via composer require --dev jenssegers/optimus:^0.2.3 phpseclib/phpseclib:^3.0).');
 
             return Command::FAILURE;
         }

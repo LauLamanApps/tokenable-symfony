@@ -27,6 +27,20 @@ trait CreatesTokenizer
         string $separator = '_',
         int $base = 36,
     ): Tokenizer {
+        return new Tokenizer($this->createEntityManager(null, $classes), $separator, $base);
+    }
+
+    /**
+     * Builds an EntityManager mock whose metadata driver reports the given
+     * classes and whose find() delegates to the supplied callback.
+     *
+     * @param (callable(class-string, int): ?object)|null $find
+     * @param list<class-string>                          $classes
+     */
+    private function createEntityManager(
+        ?callable $find = null,
+        array $classes = [FooEntity::class, BarEntity::class],
+    ): EntityManagerInterface {
         $driver = $this->createMock(MappingDriver::class);
         $driver->method('getAllClassNames')->willReturn($classes);
 
@@ -36,6 +50,12 @@ trait CreatesTokenizer
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->method('getConfiguration')->willReturn($configuration);
 
-        return new Tokenizer($entityManager, $separator, $base);
+        if (null !== $find) {
+            $entityManager->method('find')->willReturnCallback(
+                static fn (string $className, mixed $id): ?object => $find($className, (int) $id),
+            );
+        }
+
+        return $entityManager;
     }
 }

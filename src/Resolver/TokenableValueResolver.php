@@ -78,12 +78,23 @@ final class TokenableValueResolver implements ValueResolverInterface
     {
         $expectedPrefix = $this->tokenizer->configFor($expectedClass)->prefix.$this->tokenizer->getSeparator();
 
-        $byArgName = $request->attributes->get($argument->getName());
+        // Route attributes take precedence over the query string; within each,
+        // an exact argument-name match wins before falling back to a prefix scan.
+        return $this->findTokenInBag($request->attributes->all(), $argument->getName(), $expectedPrefix)
+            ?? $this->findTokenInBag($request->query->all(), $argument->getName(), $expectedPrefix);
+    }
+
+    /**
+     * @param array<string, mixed> $bag
+     */
+    private function findTokenInBag(array $bag, string $argumentName, string $expectedPrefix): ?string
+    {
+        $byArgName = $bag[$argumentName] ?? null;
         if (is_string($byArgName) && str_starts_with($byArgName, $expectedPrefix)) {
             return $byArgName;
         }
 
-        foreach ($request->attributes->all() as $key => $value) {
+        foreach ($bag as $key => $value) {
             if (is_string($key) && str_starts_with($key, '_')) {
                 continue;
             }

@@ -85,6 +85,53 @@ final class TokenableValueResolverTest extends TestCase
         $this->resolve($this->resolver($tokenizer, $em), $request, $argument);
     }
 
+    public function testResolvesEntityFromQueryParameter(): void
+    {
+        $tokenizer = $this->createTokenizer();
+        $token = $tokenizer->encode(FooEntity::class, 42);
+        $entity = new FooEntity(42);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->expects(self::once())->method('find')->with(FooEntity::class, 42)->willReturn($entity);
+
+        $request = new Request(query: ['foo' => $token]);
+        $argument = new ArgumentMetadata('foo', FooEntity::class, false, false, null);
+
+        self::assertSame([$entity], $this->resolve($this->resolver($tokenizer, $em), $request, $argument));
+    }
+
+    public function testResolvesEntityFromDifferentlyNamedQueryParameterByPrefix(): void
+    {
+        $tokenizer = $this->createTokenizer();
+        $token = $tokenizer->encode(FooEntity::class, 42);
+        $entity = new FooEntity(42);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->expects(self::once())->method('find')->with(FooEntity::class, 42)->willReturn($entity);
+
+        $request = new Request(query: ['someOtherName' => $token]);
+        $argument = new ArgumentMetadata('foo', FooEntity::class, false, false, null);
+
+        self::assertSame([$entity], $this->resolve($this->resolver($tokenizer, $em), $request, $argument));
+    }
+
+    public function testRouteAttributeTakesPrecedenceOverQueryParameter(): void
+    {
+        $tokenizer = $this->createTokenizer();
+        $attributeToken = $tokenizer->encode(FooEntity::class, 42);
+        $queryToken = $tokenizer->encode(FooEntity::class, 99);
+        $entity = new FooEntity(42);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->expects(self::once())->method('find')->with(FooEntity::class, 42)->willReturn($entity);
+
+        $request = new Request(query: ['foo' => $queryToken]);
+        $request->attributes->set('foo', $attributeToken);
+        $argument = new ArgumentMetadata('foo', FooEntity::class, false, false, null);
+
+        self::assertSame([$entity], $this->resolve($this->resolver($tokenizer, $em), $request, $argument));
+    }
+
     private function resolver(Tokenizer $tokenizer, EntityManagerInterface $em): TokenableValueResolver
     {
         return new TokenableValueResolver($tokenizer, $em, new TokenableRecorder(enabled: false));

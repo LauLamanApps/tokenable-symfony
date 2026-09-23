@@ -11,8 +11,11 @@ opaque, type-tagged, non-guessable token — with **zero per-controller boilerpl
   <img src="docs/tokenable-address-bar.svg" alt="/invoice/12/view becomes /invoice/inv_3f9k2/view" width="660">
 </p>
 
-The obfuscation uses [Optimus](https://github.com/jenssegers/optimus) (Knuth multiplicative
-hashing) so ids are not sequential or guessable, then base-36 encodes them for compactness.
+The obfuscation is Knuth multiplicative hashing over 31 bits, so ids are not sequential or
+guessable, then base-36 encoded for compactness. It needs no extra package: since 2.1 the
+few lines involved live in `Tokenizer` itself, and tokens minted by earlier versions (which
+used [Optimus](https://github.com/jenssegers/optimus)) decode to exactly the same ids.
+`jenssegers/optimus` is only suggested, for `app:tokenable:generate`.
 
 ## Why
 

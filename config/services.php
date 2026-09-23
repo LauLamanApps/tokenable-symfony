@@ -36,6 +36,7 @@ return static function (Symfony\Component\DependencyInjection\Loader\Configurato
             service('.inner'),
             service(Tokenizer::class),
             '%kernel.cache_dir%',
+            '%kernel.debug%',
         ]);
 
     $services->set(GenerateTokenableCommand::class)
